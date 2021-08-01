@@ -1,0 +1,65 @@
+#PURPOSE: to iterate through weekly greenhouse usage reports of coordinators and display on plt.plot graph
+
+import pandas as pd
+import os
+import matplotlib.pyplot as plt
+import re
+from matplotlib import dates #to set x axis date interval to every 7 days
+
+# from datetime import datetime
+
+#from google.colab import files
+#uploaded = files.upload()
+
+# !ls
+# df = pd.read_csv('/content/gdrive/My Drive/ghu.xlsx')
+
+
+
+directory = 'drive/MyDrive/data'
+folder = os.listdir(directory)
+coordinators = sorted([coordinator for coordinator in folder])[1:]
+print(coordinators)
+
+
+#compile all weekly gh usage report
+
+for coordinator in coordinators:
+  all_weeks = pd.DataFrame()
+  files = [file for file in os.listdir(directory + '/' + coordinator)]
+  
+  #iterate through weekly files
+  for file in files:
+    df = pd.read_excel(directory + '/' + coordinator + '/' + file, header=3)
+    # create date column
+    df['date'] = file[-15:].split('.')[0]
+    all_weeks = pd.concat([all_weeks, df])
+
+  name = re.split('\(|\)', coordinator)[1]
+  print(name)
+  all_weeks.to_csv(name + '.csv', index=False)
+  all_data = pd.read_csv(name + '.csv')
+
+  df_Coordinator = all_data.loc[all_data['User'] == name]
+  df_Coordinator['date'] = pd.to_datetime(df_Coordinator['date'])
+  df_Coordinator = df_Coordinator.sort_values(by='date')
+
+  plt.rcParams["figure.figsize"]=(13,6)
+  
+  fig = plt.figure()
+  ax = fig.add_subplot()
+
+  plt.title(name)
+  plt.xticks(rotation=90)
+  plt.xlabel('Weekly')
+  plt.ylabel('Interviews Scheduled')
+  plt.grid(axis='y')
+  plt.plot(df_Coordinator['date'], df_Coordinator['Interviews Scheduled'])
+  #x axis labels every 7 days
+  ax.xaxis.set_major_locator(dates.DayLocator(interval=7))
+
+  #annotate # per dot
+  for i,j in zip(df_Coordinator['date'],df_Coordinator['Interviews Scheduled']):
+      ax.annotate(str(j),xy=(i,j+1))
+
+  plt.show()
